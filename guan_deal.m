@@ -1,6 +1,17 @@
-%% 合并数据
+%% 读取文件
+datapath = '..\mat_data\';
+ ALL_fortrain=[];
+namelist = dir([datapath '*.mat']);
+All_name=cat(1,namelist.name);
+for con=1:2%size(All_name,1)
+    fortrain=load([datapath All_name(1,:)]);
+    ALL_fortrain=[ ALL_fortrain; fortrain.FOR_TRAIN];    
+end
+randIndex = randperm(size(ALL_fortrain,1))
+ALL_fortrain=ALL_fortrain(randIndex,:)
 
-FOR_TRAIN=[X,Y];
+%% 合并数据
+% FOR_TRAIN=[X,Y];
 %% 
 % 注意每次需要训练模型并将模型导出，注意代码中的模型名称与导出模型名称对应。
 
