@@ -119,7 +119,7 @@ numTest = floor(numTotal/numFolds);
 numTrain = numTotal - numTest;
 
 
-indexTotal = randperm(numTotal); %
+indexTotal = randperm(numTotal); %ยาะ๒
     for fold = 1:numFolds
         disp(['fold ' num2str(fold)]);
         
@@ -144,7 +144,7 @@ indexTotal = randperm(numTotal); %
         targetTrue = targetAll(indexTest);
         targetPredicted = zeros(numMethods, numTest);         
                 X = dataAll(indexTest,:);
-                Y = zeros(numTest,1);
+                Y = zeros(numTest,1);    %%%?????
                 
                 [predict_label,predict_accuracy,predict_decvalue] = svmpredict(Y,X, svmmodel,['-b 1']);
                 targetPredicted = predict_label;
