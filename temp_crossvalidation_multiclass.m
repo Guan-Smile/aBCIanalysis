@@ -3,14 +3,20 @@ clear all;clc;
 dbstop if error
 datapath = '..\emotion_data\';
 %%%%original data
-%file = {  [datapath 'aaaaaa.cnt' ]   };
-name_chang_part='emotion_60s_chenbinchao_20180808_1';  01/03/05/08/730/726
-dataname = [ name_chang_part '.cnt'];
+namelist = dir([datapath '*.cnt']);
+All_name={namelist.name};%%%所有cnt文件的名字
+for cont=2:size(All_name,2)
+%     foruse=load([datapath All_name(cont,:)]);
+% name_chang_part='emotion_60s_chenbinchao_20180808_1';  01/03/05/08/730/726
+name_chang=char(All_name(cont));
+name_chang_part=name_chang(1:end-4)
+dataname = [ name_chang_part '.cnt'];  %or = name_chang
 datasource = {  [datapath dataname ]   };
 
 fs = 250;
-subject = 'chenbinchao';
+subject = name_chang_part(13:end-11);
 methods = {'svm'};
+
 numMethods = length(methods);
 numWinLen = 6;
 std_means = {'zscore_trial' 'svmscale'  'mapminmax' 'zscore' 'none'};
@@ -63,7 +69,7 @@ accuracyTrain = zeros(numWinLen,numStd, numFolds, numMethods);
 % for i =1:15
 %    time(i ) = length( source_signal{ i} )/250  
 % end
-for window = 1:numWinLen
+for window = 1:1%%%%%numWinLen                 %%%%%%%%%%%%%需要加上！！！！
    % for window = 5:6
 
 feature_all=[];
@@ -110,7 +116,7 @@ end
      end
  end
  
-for std_idx = 1:numStd
+for std_idx = 1:1%numStd                   %%%%%%%%%%%%%需要加上！！！！
     test_index = find(abs(label)<=1);
 %for std_idx = 4:4
 dataAll = std_feature(feature_all(test_index,:),std_means{std_idx}); 
@@ -122,7 +128,7 @@ numTrain = numTotal - numTest;
 
 
 indexTotal = randperm(numTotal); %乱序
-    for fold = 1:numFolds
+    for fold = 1:1%numFolds             %%%%%%%%%%%%%需要加上！！！！
         disp(['fold ' num2str(fold)]);
         
         indexTest = indexTotal((fold-1)*numTest+1:fold*numTest);
@@ -131,50 +137,58 @@ indexTotal = randperm(numTotal); %乱序
         X = dataAll(indexTrain,:);
         Y = targetAll(indexTrain);
         FOR_TRAIN=[X,Y];
-      %%  save X,Y
-     %  name_chang_part='emotion_60s_chenbinchao_20180801_1';
-       mat_name = [name_chang_part '.mat'];
-       datapath = '..\mat_data\';
-      mat_path = [datapath mat_name ];
-     
-%       save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%
-      
       X_test = dataAll(indexTest,:);
       Y_test = targetAll(indexTest);
       FOR_TEST=[X_test,Y_test];
-      save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%%%
+        
+      %%  save X,Y
+     %  name_chang_part='emotion_60s_chenbinchao_20180801_1';
+       mat_name = [name_chang_part '.mat'];
+       mat_datapath = '..\mat_data\';
+      mat_path = [mat_datapath subject '\' mat_name ];
+     %subject=name_chang_part(13:end-11)'文件夹名称'
+%       save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%
       
+      mkdir(mat_datapath,subject)
+      save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%%%
+
+end
+    
+end
+end
+end
+
       %%
         
-   
-        disp('training models');
-        
-        
-                    svmoption = ['-s 0 -t 0 -c 1 -g 0.001 -b 1'];
-                    svmmodel = svmtrain(Y,X,svmoption);
-                    model = svmmodel;
-               
-            
-     
-        
-                disp('classifying');
-        
-        targetTrue = targetAll(indexTest);
-        targetPredicted = zeros(numMethods, numTest);         
-                X = dataAll(indexTest,:);
-                Y = zeros(numTest,1);    
-                
-                [predict_label,predict_accuracy,predict_decvalue] = svmpredict(Y,X, svmmodel,['-b 1']);
-                targetPredicted = predict_label;
-                           
-                 Y_predict = predict_label;
-                 accuracyTrain(window,std_idx,fold)= length(find(squeeze(targetPredicted) == targetTrue))/numTest;
-         end
-         
-        
-        
-    end
-end
-    accuracyTrain=mean(accuracyTrain,3);
-    
-    
+%    
+%         disp('training models');
+%         
+%         
+%                     svmoption = ['-s 0 -t 0 -c 1 -g 0.001 -b 1'];
+%                     svmmodel = svmtrain(Y,X,svmoption);
+%                     model = svmmodel;
+%                
+%             
+%      
+%         
+%                 disp('classifying');
+%         
+%         targetTrue = targetAll(indexTest);
+%         targetPredicted = zeros(numMethods, numTest);         
+%                 X = dataAll(indexTest,:);
+%                 Y = zeros(numTest,1);    
+%                 
+%                 [predict_label,predict_accuracy,predict_decvalue] = svmpredict(Y,X, svmmodel,['-b 1']);
+%                 targetPredicted = predict_label;
+%                            
+%                  Y_predict = predict_label;
+%                  accuracyTrain(window,std_idx,fold)= length(find(squeeze(targetPredicted) == targetTrue))/numTest;
+%          end
+%          
+%         
+%         
+%     end
+% end
+%     accuracyTrain=mean(accuracyTrain,3);
+%     
+%     
