@@ -1,0 +1,160 @@
+%%   temp_cross_validation
+clear all;clc;
+dbstop if error
+datapath = '..\emotion_data\';
+%%%%original data
+%file = {  [datapath 'aaaaaa.cnt' ]   };
+datasource = {  [datapath 'emotion_60s_chenbinchao_20180808_1.cnt' ]   };
+
+fs = 250;
+subject = 'chenbinchao';
+methods = {'svm'};
+numMethods = length(methods);
+numWinLen = 6;
+std_means = {'zscore_trial' 'svmscale'  'mapminmax' 'zscore' 'none'};
+numStd = length(std_means);
+numFolds = 10;
+feature_extract_method = 'DE';
+
+
+modelfile = ['models/' subject '_emotion_svm_model'];
+
+
+
+% order = 10;
+% fstop1 = 0;    % First Stopband Frequency
+% fpass1 = 0.5;  % First Passband Frequency
+% fpass2 = 30;   % Second Passband Frequency
+% fstop2 = 30.5;   % Second Stopband Frequency
+% wstop1 = 1;    % First Stopband Weight
+% wpass  = 1;    % Passband Weight
+% wstop2 = 2;    % Second Stopband Weight
+% dens  = 20;     % Density Factor
+% 
+% b  = firpm(order, [0 fstop1 fpass1 fpass2 fstop2 fs/2]/(fs/2), [0 0 1 1 0 ...
+%     0], [wstop1 wpass wstop2], {dens});
+% hdfilter = dfilt.dffir(b);
+
+% band =[0 0.1 70 71 ];
+% [B,A] = Filter_Design(fs,band);
+
+f1 = 0.1;
+f2 = 70;
+order = 6;
+h  = fdesign.bandpass('N,F3dB1,F3dB2', order, f1, f2, fs);
+hdfilter = design(h, 'butter');
+%%%%%%%%%%%%%%%%%
+%S = filter(hdfilter, S);
+[source_signal,base_line,target,clab] = readData(datasource,60,  hdfilter);
+[source_signal,base_line,target]=windows_cutting(source_signal,base_line,target,20*250,2*250);
+numTrials = length(target);
+numChannels = size(source_signal{1},2);
+
+% channel selection
+%for count = 1 :96
+%channelSelected =[7,12,17,22,28];
+channelSelected =[3:4,7:26,28:32,34:36];
+%channelSelected =[3:4,7:17,19:26,28:29 31:32,34:36];
+numChannels = length(channelSelected);
+
+accuracyTrain = zeros(numWinLen,numStd, numFolds, numMethods);
+% for i =1:15
+%    time(i ) = length( source_signal{ i} )/250  
+% end
+for window = 1:numWinLen
+   % for window = 5:6
+
+feature_all=[];
+
+for trial =1:numTrials
+    epoch = source_signal{trial};   
+    epoch = epoch(:,channelSelected)'; 
+    base_epoch = base_line{trial}'; 
+    base_value = mean( squeeze(base_epoch(channelSelected,:)) ,2);%base_value 
+    epoch_std = epoch - repmat(base_value,1,size(epoch,2));   % remove base_value
+    %temp_filter = filter(hdfilter, epoch_std');
+    epoch_std_filtered = epoch_std;
+    % no need to remove the basevalue
+        % EMD method to reconstruct the signal
+         %     reconstruct_signal = EMD_operate(epoch_std,1);% 2_ FDFF ; 1_EFF;
+%********************************************
+window_length = [1*fs 2*fs 3*fs 5*fs 10*fs length(epoch_std_filtered) ];
+
+%********************************************
+        %% ============extract feature   channel*point
+         if strcmp(feature_extract_method, 'DE')
+            % trial_feature =   extract_DE_feature(epoch,Fs,selected_band); 
+            %[diff_entropy rasm_feature] = extract_DE_CV(epoch_std_filtered,fs,window_length(window));
+            [diff_entropy ] = extract_DE_CV(epoch_std_filtered,fs,window_length(window));
+            trial_feature  =    diff_entropy;
+         elseif strcmp(feature_extract_method, 'statistic')
+             trial_feature =   extract_statistic_feature(epoch); 
+         elseif strcmp(feature_extract_method, 'psd')
+             trial_feature =   extract_PSD_new(epoch_std, fs);%1 hanning window
+         end       
+         feature_all =[feature_all;trial_feature];  
+end
+
+
+ for i=1:numTrials
+     if(rem(target(i),3) == 1)%%NEG
+         label(i)= -1;
+     else if(rem(target(i),3) == 0 ) %%POS
+             label(i) =1;
+         else if(rem(target(i),3) == 2)%%NEU
+                 label(i)=0;
+             end
+         end
+     end
+ end
+ 
+for std_idx = 1:numStd
+    test_index = find(abs(label)<=1);
+%for std_idx = 4:4
+dataAll = std_feature(feature_all(test_index,:),std_means{std_idx}); 
+targetAll = label(test_index)';
+  
+numTotal = (length(test_index));
+numTest = floor(numTotal/numFolds);
+numTrain = numTotal - numTest;
+
+
+indexTotal = randperm(numTotal); %
+    for fold = 1:numFolds
+        disp(['fold ' num2str(fold)]);
+        
+        indexTest = indexTotal((fold-1)*numTest+1:fold*numTest);
+        indexTrain = setdiff(indexTotal,indexTest);
+                     
+        X = dataAll(indexTrain,:);
+        Y = targetAll(indexTrain);
+        
+        disp('training models');
+        
+        
+                    svmoption = ['-s 0 -t 0 -c 1 -g 0.001 -b 1'];
+                    svmmodel = svmtrain(Y,X,svmoption);
+                    model = svmmodel;
+               
+            
+     
+        
+                disp('classifying');
+        
+        targetTrue = targetAll(indexTest);
+        targetPredicted = zeros(numMethods, numTest);         
+                X = dataAll(indexTest,:);
+                Y = zeros(numTest,1);
+                
+                [predict_label,predict_accuracy,predict_decvalue] = svmpredict(Y,X, svmmodel,['-b 1']);
+                targetPredicted = predict_label;
+                           
+                 Y_predict = predict_label;
+                 accuracyTrain(window,std_idx,fold)= length(find(squeeze(targetPredicted) == targetTrue))/numTest;
+         end
+         
+        
+        
+    end
+end
+    accuracyTrain=mean(accuracyTrain,3);
