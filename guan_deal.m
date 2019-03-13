@@ -1,14 +1,16 @@
 %% 读取文件
 datapath = '..\mat_data\';
  ALL_fortrain=[];
+ ALL_fortest=[];
 namelist = dir([datapath '*.mat']);
 All_name=cat(1,namelist.name);
-for con=1:2%size(All_name,1)
-    fortrain=load([datapath All_name(1,:)]);
-    ALL_fortrain=[ ALL_fortrain; fortrain.FOR_TRAIN];    
+for con=1:size(All_name,1)
+    foruse=load([datapath All_name(con,:)]);
+    ALL_fortrain=[ ALL_fortrain; foruse.FOR_TRAIN];
+    ALL_fortest=[ ALL_fortest; foruse.FOR_TEST];
 end
-randIndex = randperm(size(ALL_fortrain,1))
-ALL_fortrain=ALL_fortrain(randIndex,:)
+randIndex = randperm(size(ALL_fortrain,1));
+ALL_fortrain=ALL_fortrain(randIndex,:);
 
 %% 合并数据
 % FOR_TRAIN=[X,Y];
@@ -32,13 +34,13 @@ ALL_fortrain=ALL_fortrain(randIndex,:)
 
 
 %% my deal _ for other run
- X_test = X;
+ X_test = ALL_fortest(:,1:150)%X;
 yfit(1,:) = trainedModel4.predictFcn(X_test);%
 yfit(2,:) = trainedModel1.predictFcn(X_test);%svmc
 yfit(3,:)= trainedModel2.predictFcn(X_test);%svmq
 yfit(4,:)= trainedModel3.predictFcn(X_test); %es SD
 
-Y_targetTrue = Y %%测试集真实标签
+Y_targetTrue = ALL_fortest(:,151)%Y %%测试集真实标签
  
 accrat =length(find(squeeze(yfit(1,:)) == Y_targetTrue'))/length(Y_targetTrue)
 accrat1 =length(find(squeeze(yfit(2,:)) == Y_targetTrue'))/length(Y_targetTrue)

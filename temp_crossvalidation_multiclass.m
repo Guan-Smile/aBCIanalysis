@@ -4,7 +4,9 @@ dbstop if error
 datapath = '..\emotion_data\';
 %%%%original data
 %file = {  [datapath 'aaaaaa.cnt' ]   };
-datasource = {  [datapath 'emotion_60s_chenbinchao_20180808_1.cnt' ]   };
+name_chang_part='emotion_60s_chenbinchao_20180808_1';  01/03/05/08/730/726
+dataname = [ name_chang_part '.cnt'];
+datasource = {  [datapath dataname ]   };
 
 fs = 250;
 subject = 'chenbinchao';
@@ -128,7 +130,23 @@ indexTotal = randperm(numTotal); %ยาะ๒
                      
         X = dataAll(indexTrain,:);
         Y = targetAll(indexTrain);
+        FOR_TRAIN=[X,Y];
+      %%  save X,Y
+     %  name_chang_part='emotion_60s_chenbinchao_20180801_1';
+       mat_name = [name_chang_part '.mat'];
+       datapath = '..\mat_data\';
+      mat_path = [datapath mat_name ];
+     
+%       save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%
+      
+      X_test = dataAll(indexTest,:);
+      Y_test = targetAll(indexTest);
+      FOR_TEST=[X_test,Y_test];
+      save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%%%
+      
+      %%
         
+   
         disp('training models');
         
         
@@ -144,7 +162,7 @@ indexTotal = randperm(numTotal); %ยาะ๒
         targetTrue = targetAll(indexTest);
         targetPredicted = zeros(numMethods, numTest);         
                 X = dataAll(indexTest,:);
-                Y = zeros(numTest,1);    %%%?????
+                Y = zeros(numTest,1);    
                 
                 [predict_label,predict_accuracy,predict_decvalue] = svmpredict(Y,X, svmmodel,['-b 1']);
                 targetPredicted = predict_label;
@@ -158,3 +176,5 @@ indexTotal = randperm(numTotal); %ยาะ๒
     end
 end
     accuracyTrain=mean(accuracyTrain,3);
+    
+    
