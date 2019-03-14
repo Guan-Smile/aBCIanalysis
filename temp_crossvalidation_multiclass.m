@@ -110,7 +110,7 @@ end
      end
  end
  
-for std_idx = 1:numStd
+for std_idx = 1:1
     test_index = find(abs(label)<=1);
 %for std_idx = 4:4
 dataAll = std_feature(feature_all(test_index,:),std_means{std_idx}); 
