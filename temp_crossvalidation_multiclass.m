@@ -103,8 +103,8 @@ window_length = [1*fs 2*fs 3*fs 5*fs 10*fs length(epoch_std_filtered) ];
          feature_all =[feature_all;trial_feature];  
 end
 
-
- for i=1:numTrials
+ label=[];
+ for i=1:numTrials  
      if(rem(target(i),3) == 1)%%NEG
          label(i)= -1;
      else if(rem(target(i),3) == 0 ) %%POS
