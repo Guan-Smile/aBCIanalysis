@@ -4,7 +4,7 @@ dbstop if error
 datapath = '..\emotion_data\';
 %%%%original data
 %file = {  [datapath 'aaaaaa.cnt' ]   };
-name_chang_part='emotion_60s_chenbinchao_20180808_1';  01/03/05/08/730/726
+name_chang_part='emotion_60s_chenbinchao_20180805_1';  01/03/05/08/730/726
 dataname = [ name_chang_part '.cnt'];
 datasource = {  [datapath dataname ]   };
 
@@ -48,7 +48,8 @@ hdfilter = design(h, 'butter');
 %%%%%%%%%%%%%%%%%
 %S = filter(hdfilter, S);
 [source_signal,base_line,target,clab] = readData(datasource,60,  hdfilter);
-[source_signal,base_line,target]=windows_cutting(source_signal,base_line,target,20*250,2*250);
+[source_signal,base_line,target]=windows_cutting(source_signal,...
+    base_line,target,20*250,20*250);
 numTrials = length(target);
 numChannels = size(source_signal{1},2);
 
@@ -63,7 +64,7 @@ accuracyTrain = zeros(numWinLen,numStd, numFolds, numMethods);
 % for i =1:15
 %    time(i ) = length( source_signal{ i} )/250  
 % end
-for window = 1:numWinLen
+for window = 2:numWinLen
    % for window = 5:6
 
 feature_all=[];
@@ -87,28 +88,65 @@ window_length = [1*fs 2*fs 3*fs 5*fs 10*fs length(epoch_std_filtered) ];
          if strcmp(feature_extract_method, 'DE')
             % trial_feature =   extract_DE_feature(epoch,Fs,selected_band); 
             %[diff_entropy rasm_feature] = extract_DE_CV(epoch_std_filtered,fs,window_length(window));
-            [diff_entropy ] = extract_DE_CV(epoch_std_filtered,fs,window_length(window));
-            trial_feature  =    diff_entropy;
+            [diff_entropy,Pxx_out_mean ] = extract_DE_CV_guan(epoch_std_filtered,fs,window_length(window));
+            trial_feature  = Pxx_out_mean;%diff_entropy;
          elseif strcmp(feature_extract_method, 'statistic')
              trial_feature =   extract_statistic_feature(epoch); 
          elseif strcmp(feature_extract_method, 'psd')
              trial_feature =   extract_PSD_new(epoch_std, fs);%1 hanning window
          end       
          feature_all =[feature_all;trial_feature];  
+         
+         
+         
 end
-
-
+BIO = [10,20,50,100,200,300];
+bios=BIO(window)
+[X,Y] = meshgrid(bios:size(feature_all,2)/2,1:size(feature_all,1));
+Z = feature_all(:,bios:end/2);
+plot3(X,Y,Z,'color',[0.7 0.5 0.7])
  for i=1:numTrials
+     hold on
      if(rem(target(i),3) == 1)%%NEG
          label(i)= -1;
+         Z = feature_all(i,bios:end/2);
+         plot3(X(i,:),Y(i,:),Z,'k')
      else if(rem(target(i),3) == 0 ) %%POS
              label(i) =1;
+             Z = feature_all(i,bios:end/2);
+%              mesh(X(:,i),Y(:,i),Z,'b')
+             plot3(X(i,:),Y(i,:),Z,'r')
          else if(rem(target(i),3) == 2)%%NEU
                  label(i)=0;
+                 Z = feature_all(i,bios:end/2);
+                 plot3(X(i,:),Y(i,:),Z,'color',[0.95,0.9,0])%[0.4 0.7 0.4])
+%                  mesh(X(:,i),Y(:,i),Z,'g')
+%              else
+%                  Z = feature_all(i,bios:end/2);
+%                  plot3(X(i,:),Y(i,:),Z)
              end
          end
      end
  end
+%  % window_length = [1*fs 2*fs 3*fs 5*fs 10*fs length(epoch_std_filtered) ];
+% BIO = [10,20,50,100,200,300];
+% bios=BIO(window)
+% [X,Y] = meshgrid(bios:size(feature_all,2)/2,1:size(feature_all,1));
+% Z = feature_all(:,bios:end/2);
+% mesh(X,Y,Z,'color')
+xlabel('ÆµÂÊ')
+ylabel('Ê±¼ä')
+view(3)
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
 for std_idx = 1:1
     test_index = find(abs(label)<=1);
@@ -142,7 +180,7 @@ indexTotal = randperm(numTotal); %ÂÒÐò
       X_test = dataAll(indexTest,:);
       Y_test = targetAll(indexTest);
       FOR_TEST=[X_test,Y_test];
-      save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%%%
+      %save(mat_path,'FOR_TRAIN','FOR_TEST')%%%%%%
       
       %%
         

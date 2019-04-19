@@ -21,26 +21,43 @@
 %    
 % end
 %function  [diff_entropy rasm_feature] = extract_DE_CV(epoch_std,Fs,window_length)
-function  [diff_entropy ] = extract_DE_CV(epoch_std,Fs,window_length)
+function  [diff_entropy,Pxx_out_mean ] = extract_DE_CV_guan(epoch_std,Fs,window_length)
 %      extract_ED_feature
 time_sec =  window_length;%1*Fs ; %length(epoch_std);%  %以多长数据为一个窗口
 NFFT=2^nextpow2(time_sec);
 f = Fs/2*linspace(0,1,NFFT/2);
 %window = hanning(time_sec);
-for channel =1:size(epoch_std,1)
+for channel =3:size(epoch_std,1)
+    PXX_all=[];
     for section =1:floor( length(epoch_std)/time_sec )%每多少秒作为一段 计算psd
     %%%%%%%%%% design hanning window :   
         window =hanning(time_sec)';
    %%%%%%%%%%%%% 
         section_data = epoch_std(channel,(section-1)*time_sec+1:section*time_sec );
         Pxx = abs (fft(section_data .*window,NFFT));
+        PXX_all=[PXX_all;Pxx];
         section_de(section,:) = band_DE(Pxx,f);
     end
+    Pxx_mean=mean(PXX_all,1);
+%     [X,Y] = meshgrid(200:length(Pxx)/2,1:section);
+% R =X+Y;
+% Z = PXX_all(R);
+%    figure(1)
+%    surface(Z)
+%    view(3)
     de_mean = mean(section_de,1);
     de(channel,:) = de_mean;
+    Pxx_out(channel,:) = Pxx_mean;
 end
 %%%=======DE Feature
    diff_entropy =reshape(de',1,size(de,1)*size(de,2));%% de' feature rank through channels
+    Pxx_out_mean=mean(Pxx_out,1);
+%     [X,Y] = meshgrid(200:length(Pxx)/2,1:size(Pxx_out,1));
+% R =X+Y;
+% Z = Pxx_out(R);
+%    figure(1)
+%    surface(Z)
+%    view(3)
 %%%======= RASM = DE_left / DE_ right;
     % rasm_channel = RASM(de);
    %rasm_feature =reshape( rasm_channel' , 1,size(rasm_channel,1)*size(rasm_channel,2));
